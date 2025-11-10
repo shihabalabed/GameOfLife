@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life RPG - Proof of Concept</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .game-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .character-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            height: 25px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .quest-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 5px solid #4e73df;
+            transition: transform 0.2s;
+        }
+        
+        .quest-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .quest-item.completed {
+            opacity: 0.6;
+            border-left-color: #28a745;
+        }
+        
+        .quest-item.locked {
+            opacity: 0.5;
+            border-left-color: #dc3545;
+        }
+        
+        .btn-complete {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-complete:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+        
+        .level-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 1.2em;
+        }
+        
+        .unlock-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            animation: slideIn 0.5s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .skill-point {
+            background: #ffd700;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        .reset-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .task-on-cooldown {
+            opacity: 0.5;
+            pointer-events: none;
+            position: relative;
+        }
+        
+        .cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+            animation: cooldownSweep 1s ease-in-out;
+        }
+        
+        @keyframes cooldownSweep {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+        
+        .cooldown-timer {
+            display: inline-block;
+            background: rgba(255, 0, 0, 0.2);
+            color: #dc3545;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .global-cooldown-banner {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+        
+        .cooldown-progress {
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .cooldown-progress-bar {
+            height: 100%;
+            background: white;
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+        
+        .character-avatar {
+            width: 160px;
+            height: 160px;
+            margin: 0 auto 20px;
+            position: relative;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            overflow: visible;
+        }
+        
+        .character-icon {
+            font-size: 60px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        
+        .character-glow {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) rotate(-5deg); }
+            20%, 40%, 60%, 80% { transform: translateX(5px) rotate(5deg); }
+        }
+        
+        /* Muscle definition levels */
+        .body-part {
+            transition: all 0.5s ease;
+            transform-origin: center;
+        }
+        
+        .muscle-level-0 .pec-left, .muscle-level-0 .pec-right { rx: 12; ry: 15; }
+        .muscle-level-1 .pec-left, .muscle-level-1 .pec-right { rx: 14; ry: 17; }
+        .muscle-level-2 .pec-left, .muscle-level-2 .pec-right { rx: 16; ry: 19; }
+        .muscle-level-3 .pec-left, .muscle-level-3 .pec-right { rx: 18; ry: 21; }
+        .muscle-level-4 .pec-left, .muscle-level-4 .pec-right { rx: 20; ry: 23; }
+        .muscle-level-5 .pec-left, .muscle-level-5 .pec-right { rx: 22; ry: 25; }
+        
+        /* Brain glow for intelligence */
+        .brain-glow {
+            filter: drop-shadow(0 0 8px #ffd700);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .brain-glow.active {
+            opacity: 1;
+            animation: brainPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes brainPulse {
+            0%, 100% { filter: drop-shadow(0 0 5px #ffd700); }
+            50% { filter: drop-shadow(0 0 15px #ffd700); }
+        }
+        
+        /* Heart beat for endurance */
+        .heart-beat {
+            animation: heartbeat 1.5s ease-in-out infinite;
+            transform-origin: center;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.1); }
+            20%, 40% { transform: scale(1); }
+        }
+        
+        /* Discipline aura */
+        .discipline-aura {
+            stroke: #ffd700;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0;
+            transition: all 0.5s ease;
+            transform-origin: center;
+        }
+        
+        .discipline-aura.active {
+            opacity: 0.6;
+            animation: rotateAura 4s linear infinite;
+        }
+        
+        @keyframes rotateAura {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .upgrade-stat {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .upgrade-stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .upgrade-level {
+            background: #ffd700;
+            color: #333;
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .upgrade-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .upgrade-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ffed4e);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .power-level {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+        
+        .power-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Character Card -->
+        <div class="card character-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0"><i class="fas fa-user-circle"></i> My Character</h2>
+                    <span class="level-badge">Level <span id="playerLevel">1</span></span>
+                </div>
+                
+                <!-- Character Avatar -->
+                <div class="character-avatar" id="characterAvatar">
+                    <div class="character-glow"></div>
+                    <svg viewBox="0 0 200 200" width="100%" height="100%" id="characterSVG">
+                        <!-- Discipline aura (golden ring) -->
+                        <circle class="discipline-aura" cx="100" cy="100" r="90" id="disciplineAura"/>
+                        
+                        <!-- Head -->
+                        <circle cx="100" cy="60" r="30" fill="#ffdbac" stroke="#d4a574" stroke-width="2"/>
+                        
+                        <!-- Brain glow for intelligence -->
+                        <g id="brainGlow" class="brain-glow">
+                            <circle cx="100" cy="55" r="20" fill="#ffd700" opacity="0.3"/>
+                            <path d="M 90,55 Q 100,45 110,55 Q 115,60 110,65 Q 100,75 90,65 Q 85,60 90,55" 
+                                  fill="#ffed4e" stroke="#ffd700" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- Eyes -->
+                        <circle cx="90" cy="60" r="3" fill="#333"/>
+                        <circle cx="110" cy="60" r="3" fill="#333"/>
+                        
+                        <!-- Smile -->
+                        <path d="M 88,70 Q 100,75 112,70" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        
+                        <!-- Neck -->
+                        <rect x="95" y="85" width="10" height="15" fill="#ffdbac" stroke="#d4a574" stroke-width="2"/>
+                        
+                        <!-- Body/Torso -->
+                        <ellipse cx="100" cy="130" rx="35" ry="40" fill="#4e73df" stroke="#2e59d9" stroke-width="2" id="torso"/>
+                        
+                        <!-- Chest muscles (pecs) - get bigger with strength -->
+                        <g id="chestMuscles" class="body-part muscle-level-0">
+                            <ellipse cx="85" cy="115" rx="12" ry="15" fill="#6c8eef" stroke="#2e59d9" class="pec-left"/>
+                            <ellipse cx="115" cy="115" rx="12" ry="15" fill="#6c8eef" stroke="#2e59d9" class="pec-right"/>
+                        </g>
+                        
+                        <!-- Abs - get more defined with strength -->
+                        <g id="absMuscles" class="body-part muscle-level-0">
+                            <rect x="92" y="125" width="16" height="8" rx="2" fill="#6c8eef" stroke="#2e59d9"/>
+                            <rect x="92" y="135" width="16" height="8" rx="2" fill="#6c8eef" stroke="#2e59d9"/>
+                            <rect x="92" y="145" width="16" height="8" rx="2" fill="#6c8eef" stroke="#2e59d9"/>
+                        </g>
+                        
+                        <!-- Heart for endurance -->
+                        <g id="heart" class="heart-beat">
+                            <path d="M 100,120 L 95,115 Q 90,110 90,115 Q 90,120 100,128 Q 110,120 110,115 Q 110,110 105,115 Z" 
+                                  fill="#ff4444" stroke="#cc0000" stroke-width="1" opacity="0.7"/>
+                        </g>
+                        
+                        <!-- Left Arm -->
+                        <g id="leftArm" class="body-part muscle-level-0">
+                            <!-- Upper arm -->
+                            <rect x="60" y="100" width="15" height="45" rx="7" fill="#ffdbac" stroke="#d4a574"/>
+                            <!-- Bicep -->
+                            <ellipse cx="67" cy="115" rx="9" ry="12" fill="#ffc995" stroke="#d4a574"/>
+                            <!-- Forearm -->
+                            <rect x="62" y="140" width="13" height="35" rx="6" fill="#ffdbac" stroke="#d4a574"/>
+                            <!-- Hand -->
+                            <circle cx="68" cy="178" r="8" fill="#ffdbac" stroke="#d4a574" stroke-width="2"/>
+                        </g>
+                        
+                        <!-- Right Arm -->
+                        <g id="rightArm" class="body-part muscle-level-0">
+                            <!-- Upper arm -->
+                            <rect x="125" y="100" width="15" height="45" rx="7" fill="#ffdbac" stroke="#d4a574"/>
+                            <!-- Bicep -->
+                            <ellipse cx="133" cy="115" rx="9" ry="12" fill="#ffc995" stroke="#d4a574"/>
+                            <!-- Forearm -->
+                            <rect x="125" y="140" width="13" height="35" rx="6" fill="#ffdbac" stroke="#d4a574"/>
+                            <!-- Hand -->
+                            <circle cx="132" cy="178" r="8" fill="#ffdbac" stroke="#d4a574" stroke-width="2"/>
+                        </g>
+                        
+                        <!-- Left Leg -->
+                        <g id="leftLeg" class="body-part muscle-level-0">
+                            <rect x="80" y="165" width="18" height="25" rx="4" fill="#333" stroke="#222"/>
+                            <rect x="82" y="185" width="14" height="10" rx="3" fill="#555"/>
+                        </g>
+                        
+                        <!-- Right Leg -->
+                        <g id="rightLeg" class="body-part muscle-level-0">
+                            <rect x="102" y="165" width="18" height="25" rx="4" fill="#333" stroke="#222"/>
+                            <rect x="104" y="185" width="14" height="10" rx="3" fill="#555"/>
+                        </g>
+                    </svg>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Character Name</label>
+                    <input type="text" class="form-control" id="characterName" placeholder="Enter your name">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Experience Points</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" 
+                             id="xpProgress" role="progressbar" style="width: 0%">
+                            <span id="xpText">0 / 100</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalXP">0</div>
+                        <div class="stat-label">Total XP</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="skillPoints">0</div>
+                        <div class="stat-label">Skill Points</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="completedQuests">0</div>
+                        <div class="stat-label">Quests Done</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="streakDays">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+                
+                <!-- Character Stats Display -->
+                <div class="power-level">
+                    <div>Total Power Level</div>
+                    <div class="power-number" id="powerLevel">0</div>
+                    <small class="text-muted" id="evolutionHint" style="display: block; margin-top: 5px;"></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Character Stats Card -->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fas fa-chart-bar"></i> Character Stats</h4>
+                <p class="text-muted small">Your character's attributes and abilities</p>
+                <div id="characterStatsDisplay">
+                    <!-- Character stats will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrades Card -->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fas fa-arrow-up"></i> Upgrade Character</h4>
+                <p class="text-muted">Spend skill points to permanently upgrade your character's abilities</p>
+                <div id="upgradesContainer">
+                    <!-- Upgrades will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Quests Card -->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fas fa-calendar-day"></i> Daily Quests</h4>
+                <p class="text-muted small">Complete these once per day - resets at midnight</p>
+                <div id="questsContainer">
+                    <!-- Quests will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Anytime Tasks Card -->
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fas fa-infinity"></i> Anytime Tasks</h4>
+                <p class="text-muted small">Complete these whenever you want - no daily limit!</p>
+                <div id="anytimeTasksContainer">
+                    <!-- Anytime tasks will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Environment/Map Card -->
+        <div class="card" id="environmentCard" style="display: none;">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fas fa-map"></i> Explore the World</h4>
+                <p class="text-muted">Fight bosses and unlock rewards!</p>
+                <div id="environmentContainer">
+                    <!-- Environment/Boss battles will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Button -->
+        <button class="btn btn-danger reset-btn" onclick="resetGame()">
+            <i class="fas fa-redo"></i> Reset Game
+        </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Game State Management
+        class GameState {
+            constructor() {
+                this.loadGame();
+            }
+
+            loadGame() {
+                const saved = localStorage.getItem('lifeRPG');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    this.characterName = data.characterName || '';
+                    this.level = data.level || 1;
+                    this.xp = data.xp || 0;
+                    this.totalXP = data.totalXP || 0;
+                    this.skillPoints = data.skillPoints || 0;
+                    this.completedQuests = data.completedQuests || 0;
+                    this.streakDays = data.streakDays || 0;
+                    this.questsStatus = data.questsStatus || {};
+                    this.anytimeTasksCount = data.anytimeTasksCount || {};
+                    this.taskCooldowns = data.taskCooldowns || {};
+                    this.globalCooldownEnd = data.globalCooldownEnd || null;
+                    this.upgrades = data.upgrades || {};
+                    this.environmentUnlocked = data.environmentUnlocked || false;
+                    this.bossesDefeated = data.bossesDefeated || {};
+                    this.lastCompletionDate = data.lastCompletionDate || null;
+                } else {
+                    this.initializeNewGame();
+                }
+            }
+
+            initializeNewGame() {
+                this.characterName = '';
+                this.level = 1;
+                this.xp = 0;
+                this.totalXP = 0;
+                this.skillPoints = 0;
+                this.completedQuests = 0;
+                this.streakDays = 0;
+                this.questsStatus = {};
+                this.anytimeTasksCount = {};
+                this.taskCooldowns = {}; // Track when each task was last completed
+                this.globalCooldownEnd = null; // Global cooldown after completing any task
+                this.upgrades = {
+                    strength: 0,
+                    endurance: 0,
+                    intelligence: 0,
+                    discipline: 0
+                };
+                this.environmentUnlocked = false;
+                this.bossesDefeated = {};
+                this.lastCompletionDate = null;
+            }
+
+            saveGame() {
+                localStorage.setItem('lifeRPG', JSON.stringify(this));
+            }
+
+            getXPForNextLevel() {
+                return 100 * this.level;
+            }
+
+            addXP(amount) {
+                this.xp += amount;
+                this.totalXP += amount;
+                
+                while (this.xp >= this.getXPForNextLevel()) {
+                    this.xp -= this.getXPForNextLevel();
+                    this.levelUp();
+                }
+                
+                this.saveGame();
+            }
+
+            levelUp() {
+                this.level++;
+                this.skillPoints += 3;
+                
+                // Unlock environment at level 2
+                if (this.level === 2 && !this.environmentUnlocked) {
+                    this.environmentUnlocked = true;
+                    showUnlockMessage('🎉 New Area Unlocked! You can now explore the world and fight bosses!');
+                }
+                
+                showUnlockMessage(`🎊 Level Up! You are now Level ${this.level}! (+3 Skill Points)`);
+                this.saveGame();
+            }
+
+            completeQuest(quest) {
+                const today = new Date().toDateString();
+                
+                // Check streak
+                if (this.lastCompletionDate) {
+                    const lastDate = new Date(this.lastCompletionDate);
+                    const todayDate = new Date(today);
+                    const diffTime = todayDate - lastDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 1) {
+                        this.streakDays++;
+                    } else if (diffDays > 1) {
+                        this.streakDays = 1;
+                    }
+                } else {
+                    this.streakDays = 1;
+                }
+                
+                this.lastCompletionDate = today;
+                this.questsStatus[quest.id] = true;
+                this.completedQuests++;
+                this.addXP(quest.xp);
+                this.skillPoints += quest.skillPoints;
+                this.saveGame();
+            }
+
+            completeAnytimeTask(task) {
+                // Initialize counter if it doesn't exist
+                if (!this.anytimeTasksCount[task.id]) {
+                    this.anytimeTasksCount[task.id] = 0;
+                }
+                
+                const now = Date.now();
+                
+                // IMPORTANT: Set cooldowns FIRST before calling addXP (which triggers saveGame)
+                
+                // Set global cooldown (30 seconds refractory period)
+                this.globalCooldownEnd = now + 30000; // 30 seconds
+                
+                // Set task-specific cooldown (1 hour)
+                if (!this.taskCooldowns) {
+                    this.taskCooldowns = {};
+                }
+                this.taskCooldowns[task.id] = now + 3600000; // 1 hour in milliseconds
+                
+                // Now update counters and add XP (addXP will call saveGame)
+                this.anytimeTasksCount[task.id]++;
+                this.completedQuests++; // Count towards total
+                this.skillPoints += task.skillPoints;
+                
+                this.addXP(task.xp); // This calls saveGame() internally
+            }
+            
+            isOnGlobalCooldown() {
+                if (!this.globalCooldownEnd) return false;
+                return Date.now() < this.globalCooldownEnd;
+            }
+            
+            getGlobalCooldownRemaining() {
+                if (!this.globalCooldownEnd) {
+                    return 0;
+                }
+                const remaining = this.globalCooldownEnd - Date.now();
+                return Math.max(0, remaining);
+            }
+            
+            isTaskOnCooldown(taskId) {
+                if (!this.taskCooldowns || !this.taskCooldowns[taskId]) return false;
+                return Date.now() < this.taskCooldowns[taskId];
+            }
+            
+            getTaskCooldownRemaining(taskId) {
+                if (!this.taskCooldowns || !this.taskCooldowns[taskId]) return 0;
+                const remaining = this.taskCooldowns[taskId] - Date.now();
+                return Math.max(0, remaining);
+            }
+
+            purchaseUpgrade(upgradeName) {
+                if (this.skillPoints > 0) {
+                    this.upgrades[upgradeName]++;
+                    this.skillPoints--;
+                    this.saveGame();
+                    return true;
+                }
+                return false;
+            }
+            
+            getTotalPower() {
+                // Calculate total power based on level and upgrades
+                const upgradeTotal = Object.values(this.upgrades).reduce((sum, val) => sum + val, 0);
+                return this.level * 10 + upgradeTotal * 5;
+            }
+            
+            getCharacterIcon() {
+                // Character evolves based on level
+                const totalPower = this.getTotalPower();
+                if (totalPower >= 200) return '🧙‍♂️'; // Wizard - ultimate form
+                if (totalPower >= 150) return '🦸‍♂️'; // Superhero
+                if (totalPower >= 100) return '🥷'; // Ninja
+                if (totalPower >= 60) return '⚔️'; // Knight
+                if (totalPower >= 30) return '🛡️'; // Warrior
+                return '👤'; // Beginner
+            }
+
+            defeatBoss(bossId) {
+                this.bossesDefeated[bossId] = true;
+                this.saveGame();
+            }
+        }
+
+        // Quest Definitions (Daily Quests)
+        const quests = [
+            { id: 'exercise', name: 'Exercise for 15 minutes', xp: 20, skillPoints: 1, minLevel: 1, icon: 'fa-running' },
+            { id: 'water', name: 'Drink 8 glasses of water', xp: 15, skillPoints: 1, minLevel: 1, icon: 'fa-tint' },
+            { id: 'learn', name: 'Learn something new for 30 min', xp: 25, skillPoints: 2, minLevel: 1, icon: 'fa-book' },
+            { id: 'sleep', name: 'Sleep 8 hours', xp: 20, skillPoints: 1, minLevel: 1, icon: 'fa-bed' },
+            { id: 'meditation', name: 'Meditate for 10 minutes', xp: 30, skillPoints: 2, minLevel: 2, icon: 'fa-spa' },
+            { id: 'healthy-meal', name: 'Eat a healthy meal', xp: 15, skillPoints: 1, minLevel: 2, icon: 'fa-apple-alt' },
+            { id: 'reading', name: 'Read for 30 minutes', xp: 25, skillPoints: 2, minLevel: 3, icon: 'fa-book-open' },
+            { id: 'social', name: 'Connect with a friend/family', xp: 20, skillPoints: 1, minLevel: 3, icon: 'fa-users' }
+        ];
+
+        // Anytime Tasks (Can be completed multiple times, no daily reset)
+        const anytimeTasks = [
+            { id: 'pushups', name: 'Do 20 push-ups', xp: 10, skillPoints: 0, minLevel: 1, icon: 'fa-hand-rock' },
+            { id: 'walk', name: 'Take a 15-minute walk', xp: 15, skillPoints: 1, minLevel: 1, icon: 'fa-walking' },
+            { id: 'clean-room', name: 'Clean/organize your space', xp: 20, skillPoints: 1, minLevel: 1, icon: 'fa-broom' },
+            { id: 'cold-shower', name: 'Take a cold shower', xp: 25, skillPoints: 1, minLevel: 1, icon: 'fa-shower' },
+            { id: 'help-someone', name: 'Help someone in need', xp: 30, skillPoints: 2, minLevel: 1, icon: 'fa-hands-helping' },
+            { id: 'journal', name: 'Write in journal (5+ minutes)', xp: 20, skillPoints: 1, minLevel: 2, icon: 'fa-pen' },
+            { id: 'cook-meal', name: 'Cook a healthy meal from scratch', xp: 35, skillPoints: 2, minLevel: 2, icon: 'fa-utensils' },
+            { id: 'practice-skill', name: 'Practice a skill for 30 minutes', xp: 30, skillPoints: 2, minLevel: 2, icon: 'fa-guitar' },
+            { id: 'no-phone', name: 'No phone for 2 hours', xp: 40, skillPoints: 2, minLevel: 3, icon: 'fa-mobile-slash' },
+            { id: 'workout-intense', name: 'Complete intense workout (45+ min)', xp: 50, skillPoints: 3, minLevel: 3, icon: 'fa-dumbbell' },
+            { id: 'teach-someone', name: 'Teach someone something new', xp: 35, skillPoints: 2, minLevel: 3, icon: 'fa-chalkboard-teacher' },
+            { id: 'create-art', name: 'Create something artistic', xp: 40, skillPoints: 2, minLevel: 4, icon: 'fa-palette' }
+        ];
+
+        // Upgrade Definitions
+        const upgrades = [
+            { id: 'strength', name: 'Physical Strength', description: 'Increases physical ability', icon: 'fa-dumbbell' },
+            { id: 'endurance', name: 'Endurance', description: 'Increases stamina and resilience', icon: 'fa-heartbeat' },
+            { id: 'intelligence', name: 'Intelligence', description: 'Boosts learning and problem-solving', icon: 'fa-brain' },
+            { id: 'discipline', name: 'Discipline', description: 'Improves focus and consistency', icon: 'fa-medal' }
+        ];
+
+        // Boss Definitions
+        const bosses = [
+            { id: 'procrastination', name: 'Boss of Procrastination', xp: 50, skillPoints: 5, minLevel: 2, icon: 'fa-clock' },
+            { id: 'laziness', name: 'Boss of Laziness', xp: 75, skillPoints: 7, minLevel: 4, icon: 'fa-bed' },
+            { id: 'distraction', name: 'Boss of Distraction', xp: 100, skillPoints: 10, minLevel: 6, icon: 'fa-mobile-alt' }
+        ];
+
+        // Initialize Game
+        let gameState = new GameState();
+
+        // UI Update Functions
+        function updateUI() {
+            // Update character info
+            document.getElementById('characterName').value = gameState.characterName;
+            document.getElementById('playerLevel').textContent = gameState.level;
+            document.getElementById('totalXP').textContent = gameState.totalXP;
+            document.getElementById('skillPoints').textContent = gameState.skillPoints;
+            document.getElementById('completedQuests').textContent = gameState.completedQuests;
+            document.getElementById('streakDays').textContent = gameState.streakDays;
+            
+            // Update character avatar
+            const avatarIcon = document.querySelector('.character-icon');
+            if (avatarIcon) {
+                avatarIcon.textContent = gameState.getCharacterIcon();
+            }
+            
+            // Update power level
+            const powerLevel = gameState.getTotalPower();
+            document.getElementById('powerLevel').textContent = powerLevel;
+            
+            // Update evolution hint
+            const hintElement = document.getElementById('evolutionHint');
+            if (powerLevel >= 200) {
+                hintElement.textContent = '🧙‍♂️ Maximum Evolution: Wizard Master!';
+            } else if (powerLevel >= 150) {
+                hintElement.textContent = '50 more power to reach Wizard! 🧙‍♂️';
+            } else if (powerLevel >= 100) {
+                hintElement.textContent = '50 more power to reach Superhero! 🦸‍♂️';
+            } else if (powerLevel >= 60) {
+                hintElement.textContent = '40 more power to reach Ninja! 🥷';
+            } else if (powerLevel >= 30) {
+                hintElement.textContent = '30 more power to reach Knight! ⚔️';
+            } else {
+                hintElement.textContent = `${30 - powerLevel} more power to reach Warrior! 🛡️`;
+            }
+            
+            // Update XP bar
+            const xpNeeded = gameState.getXPForNextLevel();
+            const xpPercent = (gameState.xp / xpNeeded) * 100;
+            document.getElementById('xpProgress').style.width = xpPercent + '%';
+            document.getElementById('xpText').textContent = `${gameState.xp} / ${xpNeeded}`;
+            
+            // Update character stats display
+            updateCharacterStats();
+            
+            // Update quests
+            updateQuests();
+            
+            // Update anytime tasks
+            updateAnytimeTasks();
+            
+            // Update upgrades
+            updateUpgrades();
+            
+            // Update environment
+            if (gameState.environmentUnlocked) {
+                document.getElementById('environmentCard').style.display = 'block';
+                updateEnvironment();
+            }
+        }
+
+        function updateQuests() {
+            const container = document.getElementById('questsContainer');
+            container.innerHTML = '';
+            
+            quests.forEach(quest => {
+                const isLocked = quest.minLevel > gameState.level;
+                const isCompleted = gameState.questsStatus[quest.id];
+                
+                const questDiv = document.createElement('div');
+                questDiv.className = `quest-item ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`;
+                
+                questDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas ${quest.icon}"></i> ${quest.name}
+                                ${isLocked ? '<i class="fas fa-lock text-danger ms-2"></i>' : ''}
+                                ${isCompleted ? '<i class="fas fa-check-circle text-success ms-2"></i>' : ''}
+                            </h6>
+                            <small class="text-muted">
+                                +${quest.xp} XP | +${quest.skillPoints} Skill Point${quest.skillPoints > 1 ? 's' : ''}
+                                ${isLocked ? ` | Requires Level ${quest.minLevel}` : ''}
+                            </small>
+                        </div>
+                        ${!isLocked && !isCompleted ? `
+                            <button class="btn btn-complete btn-sm" onclick="completeQuest('${quest.id}')">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(questDiv);
+            });
+        }
+        
+        function updateCharacterStats() {
+            const container = document.getElementById('characterStatsDisplay');
+            container.innerHTML = '';
+            
+            upgrades.forEach(upgrade => {
+                const level = gameState.upgrades[upgrade.id] || 0;
+                const maxDisplay = 20; // Show progress out of 20 for visual bar
+                const percentage = Math.min((level / maxDisplay) * 100, 100);
+                
+                const statDiv = document.createElement('div');
+                statDiv.className = 'upgrade-stat';
+                statDiv.innerHTML = `
+                    <div class="upgrade-stat-header">
+                        <div>
+                            <i class="fas ${upgrade.icon}"></i> 
+                            <strong>${upgrade.name}</strong>
+                        </div>
+                        <span class="upgrade-level">Lv ${level}</span>
+                    </div>
+                    <div class="upgrade-bar">
+                        <div class="upgrade-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                container.appendChild(statDiv);
+            });
+        }
+
+        function updateAnytimeTasks() {
+            const container = document.getElementById('anytimeTasksContainer');
+            container.innerHTML = '';
+            
+            // Show global cooldown banner if active
+            const globalCooldown = gameState.getGlobalCooldownRemaining();
+            
+            if (globalCooldown > 0) {
+                const seconds = Math.ceil(globalCooldown / 1000);
+                const banner = document.createElement('div');
+                banner.className = 'global-cooldown-banner';
+                banner.id = 'globalCooldownBanner';
+                banner.innerHTML = `
+                    <div><i class="fas fa-hourglass-half"></i> Refractory Period</div>
+                    <div style="font-size: 0.9em; margin-top: 5px;">Wait ${seconds}s before completing another task</div>
+                    <div class="cooldown-progress">
+                        <div class="cooldown-progress-bar" id="globalCooldownBar" style="width: 100%"></div>
+                    </div>
+                `;
+                container.appendChild(banner);
+            }
+            
+            anytimeTasks.forEach(task => {
+                const isLocked = task.minLevel > gameState.level;
+                const completionCount = gameState.anytimeTasksCount[task.id] || 0;
+                const taskCooldown = gameState.getTaskCooldownRemaining(task.id);
+                const isOnTaskCooldown = taskCooldown > 0;
+                const isOnGlobalCooldown = globalCooldown > 0;
+                const isDisabled = isLocked || isOnTaskCooldown || isOnGlobalCooldown;
+                
+                const taskDiv = document.createElement('div');
+                taskDiv.className = `quest-item ${isLocked ? 'locked' : ''} ${isDisabled && !isLocked ? 'task-on-cooldown' : ''}`;
+                
+                // Format cooldown time
+                let cooldownText = '';
+                if (isOnTaskCooldown && !isLocked) {
+                    const minutes = Math.floor(taskCooldown / 60000);
+                    const seconds = Math.ceil((taskCooldown % 60000) / 1000);
+                    if (minutes > 0) {
+                        cooldownText = `<span class="cooldown-timer" id="cooldown-${task.id}"><i class="fas fa-clock"></i> ${minutes}m ${seconds}s</span>`;
+                    } else {
+                        cooldownText = `<span class="cooldown-timer" id="cooldown-${task.id}"><i class="fas fa-clock"></i> ${seconds}s</span>`;
+                    }
+                }
+                
+                taskDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas ${task.icon}"></i> ${task.name}
+                                ${isLocked ? '<i class="fas fa-lock text-danger ms-2"></i>' : ''}
+                                ${completionCount > 0 ? `<span class="badge bg-success ms-2">${completionCount}x</span>` : ''}
+                                ${cooldownText}
+                            </h6>
+                            <small class="text-muted">
+                                +${task.xp} XP${task.skillPoints > 0 ? ` | +${task.skillPoints} Skill Point${task.skillPoints > 1 ? 's' : ''}` : ''}
+                                ${isLocked ? ` | Requires Level ${task.minLevel}` : ''}
+                            </small>
+                        </div>
+                        ${!isDisabled ? `
+                            <button class="btn btn-complete btn-sm" onclick="completeAnytimeTask('${task.id}')">
+                                <i class="fas fa-check"></i> Complete
+                            </button>
+                        ` : isOnTaskCooldown && !isLocked ? `
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-hourglass-half"></i> Cooldown
+                            </button>
+                        ` : isOnGlobalCooldown && !isLocked && !isOnTaskCooldown ? `
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-pause"></i> Wait
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(taskDiv);
+            });
+        }
+
+        function updateUpgrades() {
+            const container = document.getElementById('upgradesContainer');
+            container.innerHTML = '';
+            
+            if (gameState.skillPoints === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-info-circle"></i> Complete quests and tasks to earn skill points!
+                    </div>
+                `;
+                return;
+            }
+            
+            upgrades.forEach(upgrade => {
+                const level = gameState.upgrades[upgrade.id] || 0;
+                
+                const upgradeDiv = document.createElement('div');
+                upgradeDiv.className = 'mb-2';
+                upgradeDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">
+                                <i class="fas ${upgrade.icon}"></i> ${upgrade.name}
+                                <span class="badge bg-primary ms-2">Lv ${level}</span>
+                            </h6>
+                            <small class="text-muted">${upgrade.description}</small>
+                        </div>
+                        <button class="btn btn-success btn-sm ms-3" onclick="buyUpgrade('${upgrade.id}')" 
+                                ${gameState.skillPoints === 0 ? 'disabled' : ''}>
+                            <i class="fas fa-plus"></i> Upgrade
+                            <br><small>(1 SP)</small>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(upgradeDiv);
+            });
+        }
+
+        function updateEnvironment() {
+            const container = document.getElementById('environmentContainer');
+            container.innerHTML = '';
+            
+            bosses.forEach(boss => {
+                const isLocked = boss.minLevel > gameState.level;
+                const isDefeated = gameState.bossesDefeated[boss.id];
+                
+                const bossDiv = document.createElement('div');
+                bossDiv.className = `quest-item ${isDefeated ? 'completed' : ''} ${isLocked ? 'locked' : ''}`;
+                
+                bossDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas ${boss.icon}"></i> ${boss.name}
+                                ${isLocked ? '<i class="fas fa-lock text-danger ms-2"></i>' : ''}
+                                ${isDefeated ? '<i class="fas fa-trophy text-warning ms-2"></i>' : ''}
+                            </h6>
+                            <small class="text-muted">
+                                +${boss.xp} XP | +${boss.skillPoints} Skill Points
+                                ${isLocked ? ` | Requires Level ${boss.minLevel}` : ''}
+                            </small>
+                        </div>
+                        ${!isLocked && !isDefeated ? `
+                            <button class="btn btn-danger btn-sm" onclick="fightBoss('${boss.id}')">
+                                <i class="fas fa-fist-raised"></i> Fight
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(bossDiv);
+            });
+        }
+
+        // Game Actions
+        function completeQuest(questId) {
+            const quest = quests.find(q => q.id === questId);
+            if (quest && !gameState.questsStatus[questId]) {
+                gameState.completeQuest(quest);
+                updateUI();
+                showSuccessMessage(`✅ Quest Completed! +${quest.xp} XP, +${quest.skillPoints} Skill Point(s)`);
+            }
+        }
+
+        function completeAnytimeTask(taskId) {
+            const task = anytimeTasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            // Check if on global cooldown
+            if (gameState.isOnGlobalCooldown()) {
+                const seconds = Math.ceil(gameState.getGlobalCooldownRemaining() / 1000);
+                showErrorMessage(`⏸️ Please wait ${seconds} seconds before completing another task!`);
+                return;
+            }
+            
+            // Check if this specific task is on cooldown
+            if (gameState.isTaskOnCooldown(taskId)) {
+                const minutes = Math.floor(gameState.getTaskCooldownRemaining(taskId) / 60000);
+                const seconds = Math.ceil((gameState.getTaskCooldownRemaining(taskId) % 60000) / 1000);
+                showErrorMessage(`⏰ This task is on cooldown! Wait ${minutes}m ${seconds}s`);
+                return;
+            }
+            
+            gameState.completeAnytimeTask(task);
+            updateUI();
+            const skillMsg = task.skillPoints > 0 ? `, +${task.skillPoints} Skill Point(s)` : '';
+            showSuccessMessage(`✅ Task Completed! +${task.xp} XP${skillMsg}`);
+            
+            // Start cooldown update intervals
+            startCooldownUpdates();
+        }
+
+        function buyUpgrade(upgradeId) {
+            if (gameState.purchaseUpgrade(upgradeId)) {
+                const upgrade = upgrades.find(u => u.id === upgradeId);
+                const newLevel = gameState.upgrades[upgradeId];
+                
+                updateUI();
+                updateCharacterVisuals(); // Update character appearance
+                showSuccessMessage(`⬆️ ${upgrade.name} upgraded to Level ${newLevel}!`);
+            }
+        }
+        
+        // Update character visual appearance based on stats
+        function updateCharacterVisuals() {
+            const strength = gameState.upgrades.strength || 0;
+            const endurance = gameState.upgrades.endurance || 0;
+            const intelligence = gameState.upgrades.intelligence || 0;
+            const discipline = gameState.upgrades.discipline || 0;
+            
+            // Update muscle size based on strength (0-5+ levels)
+            const muscleLevel = Math.min(5, Math.floor(strength / 2));
+            const leftArm = document.getElementById('leftArm');
+            const rightArm = document.getElementById('rightArm');
+            const chestMuscles = document.getElementById('chestMuscles');
+            const absMuscles = document.getElementById('absMuscles');
+            
+            if (leftArm && rightArm && chestMuscles && absMuscles) {
+                // Remove old muscle classes
+                [leftArm, rightArm, chestMuscles, absMuscles].forEach(part => {
+                    for (let i = 0; i <= 5; i++) {
+                        part.classList.remove(`muscle-level-${i}`);
+                    }
+                    part.classList.add(`muscle-level-${muscleLevel}`);
+                });
+                
+                // Scale muscles based on strength
+                const scale = 1 + (strength * 0.05); // 5% bigger per level
+                if (leftArm) leftArm.style.transform = `scale(${scale})`;
+                if (rightArm) rightArm.style.transform = `scale(${scale})`;
+            }
+            
+            // Update heart beat speed based on endurance
+            const heart = document.getElementById('heart');
+            if (heart) {
+                if (endurance > 0) {
+                    heart.classList.add('heart-beat');
+                    const speed = Math.max(0.5, 1.5 - (endurance * 0.1)); // Faster with more endurance
+                    heart.style.animationDuration = `${speed}s`;
+                    heart.style.opacity = Math.min(1, 0.5 + (endurance * 0.05));
+                } else {
+                    heart.classList.remove('heart-beat');
+                }
+            }
+            
+            // Update brain glow based on intelligence
+            const brainGlow = document.getElementById('brainGlow');
+            if (brainGlow) {
+                if (intelligence > 0) {
+                    brainGlow.classList.add('active');
+                    brainGlow.style.opacity = Math.min(1, intelligence * 0.1);
+                } else {
+                    brainGlow.classList.remove('active');
+                }
+            }
+            
+            // Update discipline aura
+            const disciplineAura = document.getElementById('disciplineAura');
+            if (disciplineAura) {
+                if (discipline > 0) {
+                    disciplineAura.classList.add('active');
+                    disciplineAura.style.strokeWidth = 2 + discipline;
+                    disciplineAura.style.opacity = Math.min(0.8, discipline * 0.08);
+                } else {
+                    disciplineAura.classList.remove('active');
+                }
+            }
+            
+            // Update torso size slightly
+            const torso = document.getElementById('torso');
+            if (torso && strength > 0) {
+                const torsoScale = 1 + (strength * 0.03);
+                torso.setAttribute('rx', 35 * torsoScale);
+            }
+        }
+
+        function fightBoss(bossId) {
+            const boss = bosses.find(b => b.id === bossId);
+            if (boss && !gameState.bossesDefeated[bossId]) {
+                // Simple "fight" - just complete it
+                gameState.defeatBoss(bossId);
+                gameState.addXP(boss.xp);
+                gameState.skillPoints += boss.skillPoints;
+                gameState.saveGame();
+                updateUI();
+                showSuccessMessage(`🏆 Boss Defeated! +${boss.xp} XP, +${boss.skillPoints} Skill Points!`);
+            }
+        }
+
+        function resetGame() {
+            if (confirm('Are you sure you want to reset all progress?')) {
+                localStorage.removeItem('lifeRPG');
+                gameState = new GameState();
+                updateUI();
+                showSuccessMessage('Game reset! Start your journey fresh!');
+            }
+        }
+
+        // Save character name
+        document.getElementById('characterName').addEventListener('change', function() {
+            gameState.characterName = this.value;
+            gameState.saveGame();
+        });
+
+        // Notification Functions
+        function showSuccessMessage(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        function showUnlockMessage(message) {
+            const container = document.querySelector('.game-container');
+            const unlock = document.createElement('div');
+            unlock.className = 'unlock-message';
+            unlock.innerHTML = `
+                <h5 class="mb-0">${message}</h5>
+            `;
+            container.insertBefore(unlock, container.firstChild);
+            
+            setTimeout(() => {
+                unlock.remove();
+            }, 5000);
+        }
+        
+        // Cooldown Update System
+        let cooldownIntervalId = null;
+        
+        function startCooldownUpdates() {
+            // Clear any existing interval
+            if (cooldownIntervalId) {
+                clearInterval(cooldownIntervalId);
+            }
+            
+            // Update cooldowns every 100ms for smooth animation
+            cooldownIntervalId = setInterval(() => {
+                updateCooldownTimers();
+            }, 100);
+        }
+        
+        function updateCooldownTimers() {
+            // Check if any cooldowns are still active
+            const globalCooldown = gameState.getGlobalCooldownRemaining();
+            let anyTaskOnCooldown = false;
+            
+            // Update global cooldown banner and progress bar
+            if (globalCooldown > 0) {
+                const seconds = Math.ceil(globalCooldown / 1000);
+                const banner = document.getElementById('globalCooldownBanner');
+                if (banner) {
+                    const textDiv = banner.querySelector('div:nth-child(2)');
+                    if (textDiv) {
+                        textDiv.textContent = `Wait ${seconds}s before completing another task`;
+                    }
+                    const progressBar = document.getElementById('globalCooldownBar');
+                    if (progressBar) {
+                        const percentage = (globalCooldown / 30000) * 100; // 30 seconds total
+                        progressBar.style.width = percentage + '%';
+                    }
+                }
+                anyTaskOnCooldown = true;
+            } else {
+                // Global cooldown just expired - check if banner still exists
+                const banner = document.getElementById('globalCooldownBanner');
+                if (banner) {
+                    console.log('Global cooldown expired - refreshing UI to remove banner');
+                    // Refresh the entire anytime tasks section to remove the banner
+                    updateAnytimeTasks();
+                    // Continue checking for individual task cooldowns
+                }
+            }
+            
+            // Update individual task cooldown timers
+            anytimeTasks.forEach(task => {
+                const taskCooldown = gameState.getTaskCooldownRemaining(task.id);
+                if (taskCooldown > 0) {
+                    const cooldownElement = document.getElementById(`cooldown-${task.id}`);
+                    if (cooldownElement) {
+                        const minutes = Math.floor(taskCooldown / 60000);
+                        const seconds = Math.ceil((taskCooldown % 60000) / 1000);
+                        if (minutes > 0) {
+                            cooldownElement.innerHTML = `<i class="fas fa-clock"></i> ${minutes}m ${seconds}s`;
+                        } else {
+                            cooldownElement.innerHTML = `<i class="fas fa-clock"></i> ${seconds}s`;
+                        }
+                    }
+                    anyTaskOnCooldown = true;
+                }
+            });
+            
+            // If no cooldowns remain, refresh UI and stop interval
+            if (!anyTaskOnCooldown) {
+                updateAnytimeTasks();
+                if (cooldownIntervalId) {
+                    clearInterval(cooldownIntervalId);
+                    cooldownIntervalId = null;
+                }
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUI();
+            updateCharacterVisuals(); // Initialize character appearance
+            
+            // Check if there are any active cooldowns and start updates if needed
+            if (gameState.isOnGlobalCooldown() || 
+                anytimeTasks.some(task => gameState.isTaskOnCooldown(task.id))) {
+                startCooldownUpdates();
+            }
+        });
+
+        // Reset quests daily (check on page load)
+        function checkDailyReset() {
+            const today = new Date().toDateString();
+            const lastReset = localStorage.getItem('lastReset');
+            
+            if (lastReset !== today) {
+                gameState.questsStatus = {};
+                gameState.saveGame();
+                localStorage.setItem('lastReset', today);
+            }
+        }
+
+        checkDailyReset();
+    </script>
+</body>
+</html>
